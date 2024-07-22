@@ -1,0 +1,40 @@
+name: minio-docker
+
+services:
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: minio
+    hostname: minio
+    restart: always
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ERASURE_CODE_PROFILE=${MINIO_ERASURE_CODE_PROFILE}
+    command: server --console-address ":9001" /mnt/data-101 /mnt/data-102 /mnt/data-103 /mnt/data-104
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - ${MINIO_DATA_DIR_101}:/mnt/data-101
+      - ${MINIO_DATA_DIR_102}:/mnt/data-102
+      - ${MINIO_DATA_DIR_103}:/mnt/data-103
+      - ${MINIO_DATA_DIR_104}:/mnt/data-104
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://minio:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    user: root
+    ports:
+      - 9100:9100
+    depends_on:
+      - minio
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /mnt/storage:/rootfs:ro
